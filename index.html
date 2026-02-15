@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Forge - AI Code Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+    <style>
+        :root {
+            --text-primary: #ffffff;
+            --text-secondary: #e5e7eb;
+            --panel-bg: rgba(255, 255, 255, 0.1);
+            --panel-border: rgba(255, 255, 255, 0.25);
+            --accent-color: #2dd4bf;
+            --accent-color-dark: #14b8a6;
+            --secondary-accent: #f472b6;
+            --glitch-red: #ff003c;
+            --glitch-cyan: #00ffc8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(145deg, #5b21b6 0%, #d946ef 50%, #f59e0b 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .glitch-title {
+            font-family: 'Teko', sans-serif;
+            font-size: clamp(2rem, 5vw, 5rem);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            position: relative;
+            color: #fff;
+            margin: 0;
+            background: linear-gradient(90deg, #f0e6ff, #d9c2ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+        }
+
+        .glitch-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            color: #fff;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glitch-layer--red {
+            text-shadow: -2px 0 var(--glitch-red);
+            background: linear-gradient(90deg, var(--glitch-red), #ff5a84);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .glitch-layer--cyan {
+            text-shadow: 2px 0 var(--glitch-cyan);
+            background: linear-gradient(90deg, var(--glitch-cyan), #78ffee);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.7;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s ease-out, box-shadow 0.2s ease;
+        }
+        
+        .glass-panel:hover {
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .tab-btn {
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+        
+        .tab-btn.active {
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--secondary-accent);
+            background-color: rgba(244, 114, 182, 0.15);
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: #111827;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 10px rgba(45, 212, 191, 0.3);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-color-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(45, 212, 191, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--panel-border);
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Pulsing glow for OTP button */
+        @keyframes otpPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(244, 114, 182, 0.4), 0 0 20px rgba(244, 114, 182, 0.2); }
+            50% { box-shadow: 0 0 20px rgba(244, 114, 182, 0.6), 0 0 30px rgba(244, 114, 182, 0.3); }
+        }
+        
+        #getOtpBtn {
+            animation: otpPulse 2s ease-in-out infinite;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
+        input[type="url"], input[type="text"], textarea, select {
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+        }
+
+        input[type="url"]::placeholder,
+        input[type="text"]::placeholder,
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .swagger-ui .topbar { display: none; }
+        #swagger-ui { background: rgba(0,0,0,0.2); border-radius: 0.5rem; }
+        .swagger-ui .opblock-tag, .swagger-ui .info .title, .swagger-ui .info { color: var(--text-primary) !important; }
+
+        .censored-content {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .otp-gate-container {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .code-editor {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid var(--accent-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-item {
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            transform: translateX(4px);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 500px;
+            animation: slideInDown 0.3s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from { transform: translate(-50%, -100px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .command-palette {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 99;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div id="notification-container"></div>
+
+    <div class="container mx-auto p-4 sm:p-8 min-h-screen flex flex-col relative z-10">
+        <header class="mb-4 md:mb-6 flex-shrink-0 fade-in-up" style="animation-delay: 0.1s;">
+            <!-- Top bar with buttons -->
+            <div class="flex items-center justify-between mb-3">
+                <button id="analyticsBtn" class="bg-white/10 p-2 rounded-lg border border-white/20 hover:bg-white/20 transition-colors text-gray-200" title="View Analytics">
+                    <i class="ph-light ph-chart-bar text-xl"></i>
+                </button>
+                <div class="flex gap-2">
+                    <button id="getOtpBtn" class="bg-pink-500/30 text-pink-200 text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg hover:bg-pink-500/40 transition-colors flex items-center gap-2 border border-pink-400/30">
+                        <i class="ph-light ph-lock-key text-base sm:text-lg"></i>
+                        <span>Get OTP</span>
+                    </button>
+                    <button id="commandBtn" class="bg-white/10 p-2 rounded-lg border border-white/20 hover:bg-white/20 transition-colors text-gray-200" title="Open Command Menu (Ctrl+K)">
+                        <i class="ph-light ph-command text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Title -->
+            <div class="text-center">
+                <div class="glitch-title-container relative inline-block">
+                    <h1 id="main-title" class="glitch-title uppercase">API Forge</h1>
+                </div>
+                <p class="text-xs sm:text-sm text-gray-200 mt-1">Generate API Specifications & Documentation from Code</p>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow min-h-0">
+            <div class="lg:col-span-1 h-full flex flex-col min-h-0 fade-in-up" style="animation-delay: 0.2s;">
+                <div class="glass-panel rounded-2xl p-6 h-full flex flex-col">
+                    <h2 class="text-xl font-semibold mb-4 text-white flex items-center gap-2 flex-shrink-0">
+                        <i class="ph-light ph-github-logo"></i>
+                        Repository Loader
+                    </h2>
+                    
+                    <div class="flex gap-2 mb-4 flex-shrink-0">
+                        <input type="url" id="githubUrlInput" class="w-full p-2 rounded-lg text-sm focus:ring-2 focus:outline-none" placeholder="https://github.com/user/repo">
+                        <button id="fetchUrlBtn" class="font-bold py-2 px-4 rounded-lg btn-primary flex items-center gap-2">
+                            <i class="ph-light ph-magnifying-glass"></i>
+                            <span class="hidden sm:inline">Fetch</span>
+                        </button>
+                    </div>
+
+                    <div id="fileListContainer" class="flex-grow mt-2 border border-white/20 rounded-lg overflow-y-auto p-2 min-h-0 bg-black/10">
+                        <div class="text-center text-gray-300 text-sm py-8">
+                            <i class="ph-light ph-folder-open text-4xl mb-2"></i>
+                            <p>Fetch a repository to browse files</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex flex-col gap-3 flex-shrink-0">
+                        <button id="summarizeRepoBtn" class="w-full font-bold py-3 px-4 rounded-lg btn-secondary hidden flex items-center justify-center gap-2">
+                            <i class="ph-light ph-file-text text-lg"></i>
+                            Summarize Repository
+                        </button>
+                        <button id="generateRepoBtn" class="w-full font-bold py-3 px-4 rounded-lg btn-secondary hidden">
+                            Generate for Whole Repository
+                        </button>
+                        <button id="generateBtn" class="w-full font-bold py-3 px-4 rounded-lg btn-primary flex items-center justify-center gap-2">
+                            <i class="ph-light ph-magic-wand text-lg"></i>
+                            Generate Specification
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 h-full flex flex-col min-h-0 fade-in-up" style="animation-delay: 0.3s;">
+                <div class="glass-panel rounded-2xl h-full flex flex-col">
+                    <div class="p-4 border-b border-white/20 flex items-center justify-between flex-shrink-0 flex-wrap gap-2">
+                        <div class="flex gap-2 overflow-x-auto">
+                            <button id="tab-source" class="tab-btn active px-3 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap">
+                                <i class="ph-light ph-code"></i>
+                                <span class="ml-1">Source Code</span>
+                            </button>
+                            <button id="tab-spec" class="tab-btn px-3 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap">
+                                <i class="ph-light ph-file-code"></i>
+                                <span class="ml-1">Specification</span>
+                            </button>
+                            <button id="tab-docs" class="tab-btn px-3 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap">
+                                <i class="ph-light ph-book-open"></i>
+                                <span class="ml-1">Documentation</span>
+                            </button>
+                            <button id="tab-mock" class="tab-btn px-3 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap">
+                                <i class="ph-light ph-play-circle"></i>
+                                <span class="ml-1">Playground</span>
+                            </button>
+                        </div>
+                        <div id="detectedLanguage" class="hidden text-sm items-center gap-2">
+                            <span class="font-semibold text-gray-300">Detected:</span>
+                            <span id="lang-name" class="text-white bg-white/10 px-2 py-1 rounded-md text-xs">None</span>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow relative min-h-0">
+                        <!-- Source Code Panel -->
+                        <div id="panel-source" class="absolute inset-0 p-4 flex flex-col">
+                            <div class="flex justify-between items-center mb-2 flex-shrink-0">
+                                <label class="text-sm text-gray-300">Paste or edit your code:</label>
+                                <button id="clearCodeBtn" class="text-xs text-gray-300 hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="ph-light ph-eraser"></i>
+                                    Clear
+                                </button>
+                            </div>
+                            <textarea id="codeInput" class="code-editor w-full flex-1 p-4 rounded-lg focus:ring-2 resize-none" placeholder="# Paste your code here or fetch from GitHub...
+
+def hello_world():
+    &quot;&quot;&quot;Returns a greeting&quot;&quot;&quot;
+    return 'Hello, World!'
+
+def get_user(user_id):
+    &quot;&quot;&quot;Fetch user by ID&quot;&quot;&quot;
+    return {'id': user_id, 'name': 'John'}"></textarea>
+                        </div>
+
+                        <!-- Specification Panel -->
+                        <div id="panel-spec" class="absolute inset-0 p-4 hidden">
+                            <div class="relative w-full h-full flex flex-col">
+                                <div class="flex justify-between items-center mb-2 flex-shrink-0">
+                                    <div class="flex gap-2">
+                                        <select id="formatSelect" class="bg-black/20 text-gray-200 px-3 py-1 rounded-md text-sm border border-white/20 focus:ring-2 focus:outline-none">
+                                            <option value="yaml">YAML</option>
+                                            <option value="json">JSON</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button id="downloadBtn" class="bg-black/20 text-gray-200 hover:bg-black/30 font-semibold py-1 px-3 rounded-md text-xs transition flex items-center gap-1">
+                                            <i class="ph-light ph-download-simple"></i>
+                                            Download
+                                        </button>
+                                        <button id="copyBtn" class="bg-black/20 text-gray-200 hover:bg-black/30 font-semibold py-1 px-3 rounded-md text-xs transition flex items-center gap-1">
+                                            <i class="ph-light ph-copy"></i>
+                                            Copy
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="statsPanel" class="mb-3 grid grid-cols-4 gap-2 flex-shrink-0 hidden">
+                                    <div class="stat-card">
+                                        <div class="text-xs text-gray-300">Language</div>
+                                        <div class="text-lg font-bold text-purple-400" id="stat-language">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="text-xs text-gray-300">Functions</div>
+                                        <div class="text-lg font-bold text-teal-400" id="stat-functions">0</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="text-xs text-gray-300">Classes</div>
+                                        <div class="text-lg font-bold text-pink-400" id="stat-classes">0</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="text-xs text-gray-300">Endpoints</div>
+                                        <div class="text-lg font-bold text-yellow-400" id="stat-endpoints">0</div>
+                                    </div>
+                                </div>
+                                <pre id="output" class="code-editor w-full flex-grow p-4 bg-black/20 border border-white/20 rounded-lg overflow-auto"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Documentation Panel -->
+                        <div id="panel-docs" class="absolute inset-0 p-4 hidden">
+                            <div id="docs-content-wrapper" class="w-full h-full">
+                                <div id="swagger-ui" class="w-full h-full overflow-auto"></div>
+                            </div>
+                            <div id="docs-otp-gate" class="otp-gate-container hidden">
+                                <div class="glass-panel p-8 rounded-xl text-center max-w-md">
+                                    <i class="ph-light ph-lock text-5xl text-pink-400 mb-4"></i>
+                                    <h3 class="text-2xl font-bold mb-2">Authentication Required</h3>
+                                    <p class="text-gray-300 mb-4">
+                                        Click the <span class="bg-pink-500/30 px-2 py-1 rounded text-pink-200 font-semibold">Get OTP</span> button in the top-right corner, 
+                                        then enter the 6-digit code here.
+                                    </p>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="docs-otp-input" placeholder="Enter 6-digit OTP" maxlength="6" class="w-full p-2 rounded-lg text-sm text-center focus:ring-2 focus:outline-none font-mono text-lg tracking-wider">
+                                        <button id="docs-otp-unlock" class="font-bold py-2 px-4 rounded-lg btn-primary flex items-center gap-2">
+                                            <i class="ph-light ph-lock-open"></i>
+                                            Unlock
+                                        </button>
+                                    </div>
+                                    <p id="docs-otp-error" class="text-red-400 text-sm mt-2 h-4"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mock Playground Panel -->
+                        <div id="panel-mock" class="absolute inset-0 p-6 hidden">
+                            <div id="mock-content-wrapper" class="w-full h-full">
+                                <div class="w-full h-full grid grid-rows-[auto_1fr] gap-4 overflow-auto">
+                                    <div class="overflow-y-auto">
+                                        <h1 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                                            <i class="ph-light ph-play-circle"></i>
+                                            Interactive Playground
+                                        </h1>
+                                        <div class="mb-4 p-4 bg-black/20 rounded-lg border border-white/10">
+                                            <h2 class="text-lg font-semibold mb-2 flex items-center gap-2">
+                                                <i class="ph-light ph-key"></i>
+                                                Set Authorization Token
+                                            </h2>
+                                            <div class="flex gap-2">
+                                                <input type="text" id="tokenInput" placeholder="Enter JWT/Auth Token (e.g., your_token_123)" class="w-full p-2 rounded-lg text-sm focus:ring-2 focus:outline-none">
+                                                <button id="setTokenBtn" class="font-bold py-2 px-4 rounded-lg btn-primary">Set</button>
+                                            </div>
+                                            <p id="tokenStatus" class="mt-2 text-sm h-4"></p>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-lg font-semibold mb-2">Click an Endpoint to Test</h2>
+                                            <div id="endpoints-list"></div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-black/20 rounded-lg p-4 flex flex-col border border-white/10">
+                                        <h2 class="text-lg font-semibold mb-2 flex-shrink-0 flex items-center gap-2">
+                                            <i class="ph-light ph-terminal"></i>
+                                            Mock Response
+                                        </h2>
+                                        <pre id="mock-response" class="code-editor w-full h-full overflow-auto text-sm whitespace-pre-wrap flex-grow">Click an endpoint above to see mock response...</pre>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="mock-otp-gate" class="otp-gate-container hidden">
+                                <div class="glass-panel p-8 rounded-xl text-center max-w-md">
+                                    <i class="ph-light ph-lock text-5xl text-pink-400 mb-4"></i>
+                                    <h3 class="text-2xl font-bold mb-2">Authentication Required</h3>
+                                    <p class="text-gray-300 mb-4">
+                                        Click the <span class="bg-pink-500/30 px-2 py-1 rounded text-pink-200 font-semibold">Get OTP</span> button in the top-right corner, 
+                                        then enter the 6-digit code here.
+                                    </p>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="mock-otp-input" placeholder="Enter 6-digit OTP" maxlength="6" class="w-full p-2 rounded-lg text-sm text-center focus:ring-2 focus:outline-none font-mono text-lg tracking-wider">
+                                        <button id="mock-otp-unlock" class="font-bold py-2 px-4 rounded-lg btn-primary flex items-center gap-2">
+                                            <i class="ph-light ph-lock-open"></i>
+                                            Unlock
+                                        </button>
+                                    </div>
+                                    <p id="mock-otp-error" class="text-red-400 text-sm mt-2 h-4"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Summary Modal -->
+    <div id="summary-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center hidden z-50">
+        <div class="glass-panel rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4">
+            <div class="p-4 border-b border-white/20 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="ph-light ph-file-text"></i>
+                    Repository Summary
+                </h2>
+                <button id="close-modal-btn" class="text-gray-300 hover:text-white">
+                    <i class="ph-light ph-x text-2xl"></i>
+                </button>
+            </div>
+            <div id="summary-content" class="p-6 overflow-y-auto code-editor"></div>
+        </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div id="analytics-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center hidden z-50">
+        <div class="glass-panel rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4">
+            <div class="p-4 border-b border-white/20 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="ph-light ph-chart-bar"></i>
+                    Analytics Dashboard
+                </h2>
+                <button id="close-analytics-btn" class="text-gray-300 hover:text-white">
+                    <i class="ph-light ph-x text-2xl"></i>
+                </button>
+            </div>
+            <div id="analytics-content" class="p-6 overflow-y-auto">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="stat-card">
+                        <div class="text-sm text-gray-300 mb-1">Total Generations</div>
+                        <div class="text-3xl font-bold text-teal-400" id="total-generations">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-sm text-gray-300 mb-1">Languages Detected</div>
+                        <div class="text-3xl font-bold text-pink-400" id="total-languages">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3 class="text-lg font-semibold mb-3">Language Distribution</h3>
+                    <div id="language-chart" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Command Palette -->
+    <div id="command-palette-backdrop" class="backdrop hidden"></div>
+    <div id="command-palette" class="command-palette hidden">
+        <div class="glass-panel rounded-xl overflow-hidden">
+            <input type="text" id="command-input" placeholder="Type a command..." class="w-full p-4 text-lg bg-transparent border-b border-white/20 focus:outline-none">
+            <div id="command-list" class="max-h-96 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+
+        // Utility: Show notification
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-green-500/20 border-green-500/50 text-green-300',
+                error: 'bg-red-500/20 border-red-500/50 text-red-300',
+                info: 'bg-blue-500/20 border-blue-500/50 text-blue-300',
+                warning: 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
+            };
+            
+            notification.className = `notification glass-panel p-4 rounded-lg border ${colors[type]} flex items-center gap-3`;
+            notification.innerHTML = `
+                <i class="ph-light ${type === 'success' ? 'ph-check-circle' : type === 'error' ? 'ph-x-circle' : 'ph-info'} text-2xl"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideInDown 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        window.onload = () => {
+            // GSAP Glitch Effect
+            const originalTitle = document.getElementById('main-title');
+            const container = document.querySelector('.glitch-title-container');
+            
+            const layers = ['red', 'cyan'];
+            layers.forEach(l => {
+                const clone = originalTitle.cloneNode(true);
+                clone.classList.add('glitch-layer', `glitch-layer--${l}`);
+                container.appendChild(clone);
+            });
+
+            const glitchLayers = document.querySelectorAll('.glitch-layer');
+            const masterTl = gsap.timeline({ repeat: -1 });
+
+            const createGlitchBurst = () => {
+                const tl = gsap.timeline();
+                tl.to(glitchLayers, {
+                    duration: 0.05,
+                    x: () => gsap.utils.random(-15, 15),
+                    skewX: () => gsap.utils.random(-10, 10),
+                    clipPath: () => {
+                        const y = gsap.utils.random(0, 80);
+                        return `inset(${y}% 0 ${80-y}% 0)`;
+                    },
+                    ease: "steps(1)"
+                }).to([originalTitle, glitchLayers], {
+                    duration: 0.05,
+                    x: 0, skewX: 0, clipPath: "inset(0% 0 0% 0)"
+                });
+                return tl;
+            };
+
+            masterTl.add(createGlitchBurst(), "+=1").add(createGlitchBurst(), "+=0.1").add(createGlitchBurst(), "+=2");
+
+            // UI References
+            const ui = {
+                codeInput: document.getElementById('codeInput'),
+                output: document.getElementById('output'),
+                langName: document.getElementById('lang-name'),
+                generateBtn: document.getElementById('generateBtn'),
+                generateRepoBtn: document.getElementById('generateRepoBtn'),
+                githubUrlInput: document.getElementById('githubUrlInput'),
+                fetchUrlBtn: document.getElementById('fetchUrlBtn'),
+                fileListContainer: document.getElementById('fileListContainer'),
+                tabBtns: document.querySelectorAll('.tab-btn'),
+                panels: [
+                    document.getElementById('panel-source'),
+                    document.getElementById('panel-spec'),
+                    document.getElementById('panel-docs'),
+                    document.getElementById('panel-mock')
+                ],
+                summarizeRepoBtn: document.getElementById('summarizeRepoBtn'),
+                summaryModal: document.getElementById('summary-modal'),
+                summaryContent: document.getElementById('summary-content'),
+                closeModalBtn: document.getElementById('close-modal-btn'),
+                getOtpBtn: document.getElementById('getOtpBtn'),
+                docsOtpGate: document.getElementById('docs-otp-gate'),
+                mockOtpGate: document.getElementById('mock-otp-gate'),
+                docsOtpInput: document.getElementById('docs-otp-input'),
+                mockOtpInput: document.getElementById('mock-otp-input'),
+                docsOtpUnlock: document.getElementById('docs-otp-unlock'),
+                mockOtpUnlock: document.getElementById('mock-otp-unlock'),
+                endpointsList: document.getElementById('endpoints-list'),
+                mockResponse: document.getElementById('mock-response'),
+                tokenInput: document.getElementById('tokenInput'),
+                setTokenBtn: document.getElementById('setTokenBtn'),
+                tokenStatus: document.getElementById('tokenStatus'),
+                formatSelect: document.getElementById('formatSelect'),
+                downloadBtn: document.getElementById('downloadBtn'),
+                copyBtn: document.getElementById('copyBtn'),
+                clearCodeBtn: document.getElementById('clearCodeBtn'),
+                statsPanel: document.getElementById('statsPanel'),
+                analyticsBtn: document.getElementById('analyticsBtn'),
+                analyticsModal: document.getElementById('analytics-modal'),
+                closeAnalyticsBtn: document.getElementById('close-analytics-btn'),
+                commandBtn: document.getElementById('commandBtn'),
+                commandPalette: document.getElementById('command-palette'),
+                commandPaletteBackdrop: document.getElementById('command-palette-backdrop'),
+                commandInput: document.getElementById('command-input'),
+                commandList: document.getElementById('command-list')
+            };
+
+            let currentRepoContext = null;
+            let currentSpec = null;
+            let currentSpecYAML = null;
+            let isAuthenticated = false;
+            let authToken = "";
+            let currentStats = null;
+
+            // Particles Animation
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            
+            const resize = () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            };
+            
+            resize();
+            window.onresize = resize;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                }
+                
+                draw() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    
+                    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+                    
+                    ctx.fillStyle = "rgba(255,255,255,0.5)";
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < 100; i++) particles.push(new Particle());
+            
+            const animate = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => p.draw());
+                requestAnimationFrame(animate);
+            };
+            
+            animate();
+
+            // Tab Logic
+            ui.tabBtns.forEach((btn, i) => {
+                btn.onclick = () => {
+                    ui.tabBtns.forEach(b => b.classList.remove('active'));
+                    ui.panels.forEach(p => p.classList.add('hidden'));
+                    btn.classList.add('active');
+                    ui.panels[i].classList.remove('hidden');
+                    
+                    if (btn.id === 'tab-docs') renderSwagger();
+                    if (btn.id === 'tab-mock') renderEndpoints();
+                };
+            });
+
+            // Fetch GitHub Repository
+            ui.fetchUrlBtn.onclick = async () => {
+                const url = ui.githubUrlInput.value.trim();
+                if (!url) {
+                    showNotification('Please enter a GitHub URL', 'warning');
+                    return;
+                }
+                
+                ui.fileListContainer.innerHTML = '<div class="text-white text-center p-4"><div class="loading-spinner mx-auto mb-2"></div>Loading...</div>';
+                ui.fetchUrlBtn.disabled = true;
+                
+                try {
+                    const res = await fetch(`/fetch-github`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url })
+                    });
+                    
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.description || 'Failed to fetch');
+                    }
+                    
+                    const data = await res.json();
+                    
+                    if (data.context) {
+                        currentRepoContext = data.context;
+                        ui.summarizeRepoBtn.classList.remove('hidden');
+                        ui.generateRepoBtn.classList.remove('hidden');
+                    }
+
+                    if (data.contents) {
+                        ui.fileListContainer.innerHTML = '';
+                        const items = Array.isArray(data.contents) ? data.contents : [data.contents];
+                        
+                        items.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = "file-item p-2 hover:bg-white/10 cursor-pointer rounded flex items-center gap-2 text-sm";
+                            
+                            const icon = item.type === 'dir' ? 'ph-folder' : 'ph-file-code';
+                            div.innerHTML = `<i class="ph-light ${icon}"></i> <span>${item.name}</span>`;
+                            
+                            div.onclick = async () => {
+                                if (item.type === 'file') {
+                                    try {
+                                        const response = await fetch(item.download_url);
+                                        const txt = await response.text();
+                                        ui.codeInput.value = txt;
+                                        showNotification(`Loaded ${item.name}`, 'success');
+                                    } catch (e) {
+                                        showNotification('Failed to load file', 'error');
+                                    }
+                                } else {
+                                    ui.githubUrlInput.value = item.html_url;
+                                    ui.fetchUrlBtn.click();
+                                }
+                            };
+                            
+                            ui.fileListContainer.appendChild(div);
+                        });
+                        
+                        showNotification(`Loaded ${items.length} items`, 'success');
+                    }
+                } catch (e) {
+                    ui.fileListContainer.innerHTML = `<div class="text-red-400 text-center p-4">${e.message}</div>`;
+                    showNotification(e.message, 'error');
+                } finally {
+                    ui.fetchUrlBtn.disabled = false;
+                }
+            };
+
+            // Generate Specification from Code
+            ui.generateBtn.onclick = async () => {
+                const code = ui.codeInput.value.trim();
+                if (!code) {
+                    showNotification('Please enter some code first', 'warning');
+                    return;
+                }
+                
+                ui.generateBtn.disabled = true;
+                ui.generateBtn.innerHTML = '<div class="loading-spinner mx-auto"></div>';
+                
+                try {
+                    const res = await fetch(`/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code })
+                    });
+                    
+                    if (!res.ok) throw new Error('Generation failed');
+                    
+                    const data = await res.json();
+                    currentSpecYAML = data.specification;
+                    currentSpec = jsyaml.load(data.specification);
+                    currentStats = data.stats;
+                    
+                    ui.output.textContent = data.specification;
+                    
+                    // Update stats
+                    if (currentStats) {
+                        ui.statsPanel.classList.remove('hidden');
+                        document.getElementById('stat-language').textContent = (data.language || 'unknown').toUpperCase();
+                        document.getElementById('stat-functions').textContent = currentStats.functions || 0;
+                        document.getElementById('stat-classes').textContent = currentStats.classes || 0;
+                        document.getElementById('stat-endpoints').textContent = currentStats.endpoints || 0;
+                    }
+                    
+                    ui.tabBtns[1].click();
+                    
+                    showNotification('Specification generated successfully!', 'success');
+                } catch (e) {
+                    showNotification('Failed to generate specification', 'error');
+                } finally {
+                    ui.generateBtn.disabled = false;
+                    ui.generateBtn.innerHTML = '<i class="ph-light ph-magic-wand text-lg"></i> Generate Specification';
+                }
+            };
+
+            // Generate from Repository
+            ui.generateRepoBtn.onclick = async () => {
+                if (!currentRepoContext) return;
+                
+                ui.generateRepoBtn.disabled = true;
+                ui.generateRepoBtn.innerHTML = '<div class="loading-spinner mx-auto"></div>';
+                
+                try {
+                    const res = await fetch(`/generate-repo`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(currentRepoContext)
+                    });
+                    
+                    if (!res.ok) throw new Error('Generation failed');
+                    
+                    const data = await res.json();
+                    currentSpecYAML = data.specification;
+                    currentSpec = jsyaml.load(data.specification);
+                    currentStats = data.stats;
+                    
+                    ui.output.textContent = data.specification;
+                    
+                    if (currentStats) {
+                        ui.statsPanel.classList.remove('hidden');
+                        document.getElementById('stat-functions').textContent = currentStats.functions || 0;
+                        document.getElementById('stat-classes').textContent = currentStats.classes || 0;
+                        document.getElementById('stat-endpoints').textContent = currentStats.endpoints || 0;
+                    }
+                    
+                    ui.tabBtns[1].click();
+                    showNotification(`Generated spec for ${currentRepoContext.repo}!`, 'success');
+                } catch (e) {
+                    showNotification('Failed to generate repository specification', 'error');
+                } finally {
+                    ui.generateRepoBtn.disabled = false;
+                    ui.generateRepoBtn.innerHTML = 'Generate for Whole Repository';
+                }
+            };
+
+            // Summarize Repository
+            ui.summarizeRepoBtn.onclick = async () => {
+                if (!currentRepoContext) return;
+                
+                ui.summaryModal.classList.remove('hidden');
+                ui.summaryContent.innerHTML = '<div class="text-center"><div class="loading-spinner mx-auto mb-2"></div>Analyzing structure...</div>';
+                
+                try {
+                    const res = await fetch(`/summarize-repo`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(currentRepoContext)
+                    });
+                    
+                    const data = await res.json();
+                    ui.summaryContent.innerHTML = `<pre class="text-sm whitespace-pre-wrap">${data.summary}</pre>`;
+                } catch (e) {
+                    ui.summaryContent.innerHTML = '<div class="text-red-400">Failed to generate summary</div>';
+                }
+            };
+
+            ui.closeModalBtn.onclick = () => ui.summaryModal.classList.add('hidden');
+
+            // Format switching
+            ui.formatSelect.onchange = () => {
+                if (!currentSpec) return;
+                
+                if (ui.formatSelect.value === 'json') {
+                    ui.output.textContent = JSON.stringify(currentSpec, null, 2);
+                } else {
+                    ui.output.textContent = currentSpecYAML;
+                }
+            };
+
+            // Copy to clipboard
+            ui.copyBtn.onclick = () => {
+                navigator.clipboard.writeText(ui.output.textContent);
+                showNotification('Copied to clipboard!', 'success');
+            };
+
+            // Download specification
+            ui.downloadBtn.onclick = () => {
+                if (!ui.output.textContent) return;
+                
+                const format = ui.formatSelect.value;
+                const blob = new Blob([ui.output.textContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `api-spec.${format}`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showNotification('Specification downloaded!', 'success');
+            };
+
+            // Clear code
+            ui.clearCodeBtn.onclick = () => {
+                if (confirm('Clear all code?')) {
+                    ui.codeInput.value = '';
+                    showNotification('Code cleared', 'info');
+                }
+            };
+
+            // OTP Generation
+            ui.getOtpBtn.onclick = async () => {
+                try {
+                    const res = await fetch(`/generate-otp`)
+                    const data = await res.json();
+                    
+                    // Show OTP in a prominent modal overlay
+                    const otpModal = document.createElement('div');
+                    otpModal.className = 'fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] p-4';
+                    otpModal.style.animation = 'fadeIn 0.2s ease-out';
+                    
+                    otpModal.innerHTML = `
+                        <div class="glass-panel p-8 rounded-2xl max-w-md w-full border-2 border-pink-400/50 shadow-2xl" style="animation: scaleIn 0.3s ease-out;">
+                            <div class="text-center">
+                                <i class="ph-fill ph-lock-key text-6xl text-pink-400 mb-4"></i>
+                                <h3 class="text-2xl font-bold mb-3">Your OTP Code</h3>
+                                <p class="text-gray-300 mb-4 text-sm">Copy this code and enter it in the authentication dialog</p>
+                                <div class="bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl p-6 mb-4 border border-pink-400/30">
+                                    <div class="text-5xl md:text-6xl font-mono font-bold text-pink-300 tracking-[0.3em] select-all">${data.otp}</div>
+                                </div>
+                                <button class="w-full bg-pink-500/30 hover:bg-pink-500/40 text-white font-semibold py-3 px-6 rounded-lg transition-all border border-pink-400/30" onclick="this.parentElement.parentElement.parentElement.remove()">
+                                    <i class="ph-light ph-check-circle mr-2"></i>
+                                    Got it!
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add custom animations
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes scaleIn {
+                            from { transform: scale(0.8); opacity: 0; }
+                            to { transform: scale(1); opacity: 1; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    
+                    document.body.appendChild(otpModal);
+                    
+                    // Click outside to close
+                    otpModal.onclick = (e) => {
+                        if (e.target === otpModal) {
+                            otpModal.remove();
+                        }
+                    };
+                    
+                    // Auto-dismiss after 15 seconds
+                    setTimeout(() => {
+                        if (otpModal.parentElement) {
+                            otpModal.style.animation = 'fadeIn 0.2s ease-out reverse';
+                            setTimeout(() => otpModal.remove(), 200);
+                        }
+                    }, 15000);
+                    
+                } catch (e) {
+                    showNotification('Failed to generate OTP', 'error');
+                }
+            };
+
+            // OTP Validation
+            const validateOTP = async (otpInput, errorElement) => {
+                try {
+                    const res = await fetch(`/validate-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ otp: otpInput.value })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (data.valid) {
+                        isAuthenticated = true;
+                        ui.docsOtpGate.classList.add('hidden');
+                        ui.mockOtpGate.classList.add('hidden');
+                        document.getElementById('docs-content-wrapper').classList.remove('censored-content');
+                        document.getElementById('mock-content-wrapper').classList.remove('censored-content');
+                        showNotification('Authentication successful!', 'success');
+                    } else {
+                        errorElement.textContent = 'Invalid OTP';
+                        showNotification('Invalid OTP', 'error');
+                    }
+                } catch (e) {
+                    showNotification('Validation failed', 'error');
+                }
+            };
+
+            ui.docsOtpUnlock.onclick = () => validateOTP(ui.docsOtpInput, document.getElementById('docs-otp-error'));
+            ui.mockOtpUnlock.onclick = () => validateOTP(ui.mockOtpInput, document.getElementById('mock-otp-error'));
+
+            // Swagger Rendering
+            function renderSwagger() {
+                if (!currentSpec) {
+                    document.getElementById('swagger-ui').innerHTML = '<div class="text-center text-gray-300 p-8">Generate a specification first</div>';
+                    return;
+                }
+                
+                SwaggerUIBundle({
+                    spec: currentSpec,
+                    dom_id: '#swagger-ui',
+                    deepLinking: true,
+                    presets: [SwaggerUIBundle.presets.apis],
+                });
+                
+                if (!isAuthenticated) {
+                    ui.docsOtpGate.classList.remove('hidden');
+                    document.getElementById('docs-content-wrapper').classList.add('censored-content');
+                }
+            }
+
+            // Mock Endpoints Rendering
+            function renderEndpoints() {
+                if (!currentSpec || !currentSpec.paths) {
+                    ui.endpointsList.innerHTML = '<div class="text-gray-300 text-center p-4">Generate a specification first</div>';
+                    return;
+                }
+                
+                ui.endpointsList.innerHTML = '';
+                
+                Object.keys(currentSpec.paths).forEach(path => {
+                    const methods = Object.keys(currentSpec.paths[path]);
+                    
+                    methods.forEach(method => {
+                        const btn = document.createElement('button');
+                        btn.className = "w-full text-left p-3 bg-white/5 mb-2 rounded hover:bg-white/10 flex justify-between items-center transition-all";
+                        
+                        const methodColors = {
+                            get: 'text-green-400',
+                            post: 'text-blue-400',
+                            put: 'text-yellow-400',
+                            delete: 'text-red-400',
+                            patch: 'text-purple-400'
+                        };
+                        
+                        btn.innerHTML = `
+                            <span class="font-mono ${methodColors[method]} font-bold">${method.toUpperCase()}</span>
+                            <span class="text-gray-300">${path}</span>
+                            <i class="ph-light ph-arrow-right"></i>
+                        `;
+                        
+                        btn.onclick = async () => {
+                            if (!authToken) {
+                                ui.mockResponse.textContent = '⚠️ Please set an authorization token first!';
+                                ui.mockResponse.className = 'code-editor w-full h-full overflow-auto text-sm whitespace-pre-wrap flex-grow text-yellow-400';
+                                return;
+                            }
+                            
+                            ui.mockResponse.textContent = 'Sending request...';
+                            ui.mockResponse.className = 'code-editor w-full h-full overflow-auto text-sm whitespace-pre-wrap flex-grow text-gray-400';
+                            
+                            try {
+                                const res = await fetch(`/mock${path}`, {
+                                    method: method.toUpperCase(),
+                                    headers: { 'Authorization': `Bearer ${authToken}` }
+                                });
+                                
+                                const data = await res.json();
+                                ui.mockResponse.textContent = JSON.stringify(data, null, 2);
+                                ui.mockResponse.className = 'code-editor w-full h-full overflow-auto text-sm whitespace-pre-wrap flex-grow text-green-400';
+                            } catch (e) {
+                                ui.mockResponse.textContent = `Error: ${e.message}`;
+                                ui.mockResponse.className = 'code-editor w-full h-full overflow-auto text-sm whitespace-pre-wrap flex-grow text-red-400';
+                            }
+                        };
+                        
+                        ui.endpointsList.appendChild(btn);
+                    });
+                });
+                
+                if (!isAuthenticated) {
+                    ui.mockOtpGate.classList.remove('hidden');
+                    document.getElementById('mock-content-wrapper').classList.add('censored-content');
+                }
+            }
+
+            // Token Management
+            ui.setTokenBtn.onclick = () => {
+                authToken = ui.tokenInput.value.trim();
+                if (authToken) {
+                    ui.tokenStatus.textContent = '✓ Token set successfully';
+                    ui.tokenStatus.className = 'text-green-400 text-sm mt-2';
+                    showNotification('Auth token configured', 'success');
+                } else {
+                    ui.tokenStatus.textContent = '✗ Please enter a token';
+                    ui.tokenStatus.className = 'text-red-400 text-sm mt-2';
+                }
+            };
+
+            // Analytics
+            ui.analyticsBtn.onclick = async () => {
+                ui.analyticsModal.classList.remove('hidden');
+                
+                try {
+                    const res = await fetch(`/analytics`)
+                    const data = await res.json();
+                    
+                    document.getElementById('total-generations').textContent = data.total_generations || 0;
+                    document.getElementById('total-languages').textContent = Object.keys(data.languages || {}).length;
+                    
+                    const chartDiv = document.getElementById('language-chart');
+                    chartDiv.innerHTML = '';
+                    
+                    if (data.languages && Object.keys(data.languages).length > 0) {
+                        const total = Object.values(data.languages).reduce((a, b) => a + b, 0);
+                        
+                        Object.entries(data.languages).forEach(([lang, count]) => {
+                            const percentage = ((count / total) * 100).toFixed(1);
+                            const barDiv = document.createElement('div');
+                            barDiv.className = 'flex items-center gap-3';
+                            barDiv.innerHTML = `
+                                <div class="w-24 text-sm text-gray-300">${lang}</div>
+                                <div class="flex-grow bg-white/10 rounded-full h-6 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-teal-400 to-pink-400 h-full rounded-full flex items-center justify-end pr-2 text-xs font-semibold" style="width: ${percentage}%">
+                                        ${percentage}%
+                                    </div>
+                                </div>
+                                <div class="w-12 text-sm text-gray-300 text-right">${count}</div>
+                            `;
+                            chartDiv.appendChild(barDiv);
+                        });
+                    } else {
+                        chartDiv.innerHTML = '<div class="text-gray-400 text-center py-4">No data yet</div>';
+                    }
+                } catch (e) {
+                    showNotification('Failed to load analytics', 'error');
+                }
+            };
+
+            ui.closeAnalyticsBtn.onclick = () => ui.analyticsModal.classList.add('hidden');
+
+            // Command Palette
+            const commands = [
+                { name: 'Get OTP Code', icon: 'ph-lock-key', action: () => ui.getOtpBtn.click() },
+                { name: 'Generate Specification', icon: 'ph-magic-wand', action: () => ui.generateBtn.click() },
+                { name: 'Fetch GitHub Repository', icon: 'ph-github-logo', action: () => ui.githubUrlInput.focus() },
+                { name: 'View Analytics', icon: 'ph-chart-bar', action: () => ui.analyticsBtn.click() },
+                { name: 'Copy Specification', icon: 'ph-copy', action: () => ui.copyBtn.click() },
+                { name: 'Download Specification', icon: 'ph-download-simple', action: () => ui.downloadBtn.click() },
+                { name: 'Clear Code', icon: 'ph-eraser', action: () => ui.clearCodeBtn.click() },
+                { name: 'Switch to YAML', icon: 'ph-file-code', action: () => { ui.formatSelect.value = 'yaml'; ui.formatSelect.onchange(); } },
+                { name: 'Switch to JSON', icon: 'ph-brackets-curly', action: () => { ui.formatSelect.value = 'json'; ui.formatSelect.onchange(); } },
+            ];
+
+            const openCommandPalette = () => {
+                ui.commandPalette.classList.remove('hidden');
+                ui.commandPaletteBackdrop.classList.remove('hidden');
+                ui.commandInput.focus();
+                renderCommands('');
+            };
+
+            const closeCommandPalette = () => {
+                ui.commandPalette.classList.add('hidden');
+                ui.commandPaletteBackdrop.classList.add('hidden');
+                ui.commandInput.value = '';
+            };
+
+            const renderCommands = (filter) => {
+                const filtered = commands.filter(cmd => 
+                    cmd.name.toLowerCase().includes(filter.toLowerCase())
+                );
+                
+                ui.commandList.innerHTML = '';
+                
+                filtered.forEach((cmd, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 hover:bg-white/10 cursor-pointer flex items-center gap-3 transition-colors';
+                    div.innerHTML = `
+                        <i class="ph-light ${cmd.icon} text-xl text-teal-400"></i>
+                        <span>${cmd.name}</span>
+                    `;
+                    div.onclick = () => {
+                        cmd.action();
+                        closeCommandPalette();
+                    };
+                    ui.commandList.appendChild(div);
+                });
+                
+                if (filtered.length === 0) {
+                    ui.commandList.innerHTML = '<div class="p-4 text-center text-gray-400">No commands found</div>';
+                }
+            };
+
+            ui.commandBtn.onclick = openCommandPalette;
+            ui.commandPaletteBackdrop.onclick = closeCommandPalette;
+            
+            ui.commandInput.oninput = (e) => renderCommands(e.target.value);
+            
+            ui.commandInput.onkeydown = (e) => {
+                if (e.key === 'Escape') closeCommandPalette();
+            };
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    openCommandPalette();
+                }
+                
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    ui.generateBtn.click();
+                }
+            });
+        };
+    </script>
+</body> 
+</html>
