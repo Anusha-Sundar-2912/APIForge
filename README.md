@@ -76,7 +76,7 @@ Swagger UI
 
 📂 Project Structure
 APIForge/
-├── app.py              # Backend (Flask + parsing engine)
+├── app.py             # Backend (Flask + parsing engine)
 ├── index.html         # Frontend UI
 ├── requirements.txt   # Dependencies
 ├── Procfile           # Deployment config
