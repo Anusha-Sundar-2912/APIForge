@@ -2,8 +2,6 @@
 
 Generate OpenAPI specifications, interactive documentation, and mock APIs directly from source code or GitHub repositories.
 
-🌐 Live Demo: https://apiforge-vmin.onrender.com
-
 ✨ Overview
 
 APIForge is an AI-powered developer tool that performs static code analysis to convert source code into structured API specifications. It extracts endpoints, parameters, and response structures across multiple languages and generates OpenAPI 3.0–compliant documentation automatically.
