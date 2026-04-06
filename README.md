@@ -78,10 +78,8 @@ https://apiforge-vmin.onrender.com
 
 ## 🧭 System Flow
 
-```
-<img width="2897" height="326" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/88d51fb1-a0fd-4d56-9bd0-0a9995ded621" />
 
-```
+<img width="2897" height="326" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/88d51fb1-a0fd-4d56-9bd0-0a9995ded621" />
 
 ---
 
