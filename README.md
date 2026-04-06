@@ -49,7 +49,6 @@ Security schemes
 Swagger UI integration
 Visual API exploration
 Endpoint-level inspection
-
 🧪 Mock API Playground
 Simulate API responses
 Test endpoints with authentication tokens
@@ -61,7 +60,6 @@ Language distribution
 Endpoint statistics
 
 🧠 How It Works
-<img width="2897" height="326" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/fe077b4d-3bbd-42fb-927e-c188eb39a590" />
 
 🏗️ Tech Stack
 Backend
@@ -76,12 +74,11 @@ Swagger UI
 
 📂 Project Structure
 APIForge/
-├── app.py             # Backend (Flask + parsing engine)
+├── app.py              # Backend (Flask + parsing engine)
 ├── index.html         # Frontend UI
 ├── requirements.txt   # Dependencies
 ├── Procfile           # Deployment config
 └── .gitignore
-
 
 ⚙️ Installation
 1. Clone Repository
@@ -93,9 +90,13 @@ venv\Scripts\activate
 3. Install Dependencies
 pip install -r requirements.txt
 4. Configure Environment Variables
+
 Create a .env file:
+
 GITHUB_TOKEN=your_github_token
+
 👉 Required for GitHub API access and higher rate limits
+
 5. Run Application
 python app.py
 
