@@ -19,13 +19,11 @@ Classes and controllers
 REST endpoints
 Parameters (path, query, body, headers)
 Response structures
-
 🌐 GitHub Repository Analysis
 Accepts public GitHub repository URLs
 Recursively scans source files
 Filters relevant code files
 Generates a consolidated OpenAPI specification
-
 🧠 Supported Languages
 🐍 Python (Flask, FastAPI, Django)
 ☕ Java (Spring Boot, Spring MVC)
@@ -49,6 +47,7 @@ Security schemes
 Swagger UI integration
 Visual API exploration
 Endpoint-level inspection
+
 🧪 Mock API Playground
 Simulate API responses
 Test endpoints with authentication tokens
@@ -61,8 +60,12 @@ Endpoint statistics
 
 🧠 How It Works
 
+<img width="2897" height="326" alt="mermaid-diagram (1)" src="https://github.com/user-attachments/assets/e3351ff6-3e17-43d8-9c84-0d7805d349fe" />
+
 🏗️ Tech Stack
-Backend
+
+Backend 
+
 Flask (Python)
 Static Analysis Engine (AST + pattern-based parsing)
 PyYAML (OpenAPI generation)
@@ -73,11 +76,17 @@ JavaScript
 Swagger UI
 
 📂 Project Structure
+
 APIForge/
+
 ├── app.py              # Backend (Flask + parsing engine)
-├── index.html         # Frontend UI
-├── requirements.txt   # Dependencies
-├── Procfile           # Deployment config
+
+├── index.html          # Frontend UI
+
+├── requirements.txt    # Dependencies
+
+├── Procfile            # Deployment config
+
 └── .gitignore
 
 ⚙️ Installation
@@ -102,6 +111,7 @@ python app.py
 
 🔑 API Endpoints
 Endpoint	Method	Description
+
 /generate	POST	Generate OpenAPI from code
 /generate-repo	POST	Generate from GitHub repository
 /fetch-github	POST	Fetch repository contents
@@ -118,9 +128,9 @@ Explore via Swagger documentation
 Test using the mock API playground
 
 🚀 Future Advancements
-Improved Spring Boot and multi-layer Java parsing for deeper endpoint coverage
-Enhanced request/response schema inference from complex code structures
-Better handling of large repositories with optimized recursive analysis
-Integration of AI-assisted parsing to improve endpoint detection accuracy
-Export support for Postman collections and API clients
-CI/CD integration for automated API documentation workflows
+Improved Spring Boot and multi-layer Java parsing
+Enhanced schema inference from complex code structures
+Better handling of large repositories
+AI-assisted endpoint detection
+Postman export support
+CI/CD integration
